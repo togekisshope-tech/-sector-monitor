@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>板块资金占比监控看板</title>
+    <title>板块资金占比监控</title>
     <style>
         * {box-sizing: border-box;}
         body {font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;margin:10px;background:#2b2b2b;color:#eee;}
@@ -11,7 +11,7 @@
         .sidebar {width:280px;background:#3c3c3c;padding:12px;border-radius:8px;flex-shrink:0;}
         .main-wrap {flex:1;min-width:600px;display:flex;gap:10px;}
         .sector-panel {flex:2;}
-        .limit-panel {flex:1;background:#3c3c3c;padding:12px;border-radius:8px;min-width:280px;}
+        .limit-panel {flex:1;background:#3c3c3c;padding:8px;border-radius:8px;min-width:220px;max-width:260px;}
         .tab-bar {display:flex;gap:8px;margin-bottom:10px;}
         .tab {padding:8px 16px;background:#444;border-radius:6px;cursor:pointer;}
         .tab.active {background:#2563eb;}
@@ -24,12 +24,15 @@
         .warn {padding:10px;background:#713123;border-radius:6px;margin-bottom:10px;}
         input,button {width:100%;padding:6px;margin:4px 0;border:none;border-radius:4px;}
         button {background:#2563eb;color:#fff;padding:8px;cursor:pointer;}
-        .btn-mark {width:70px;padding:4px;margin:0;background:#444;}
-        h3{margin-top:4px;margin-bottom:8px;}
+        .btn-mark {width:70px;padding:4px;margin:0;background:#444;color:#fff;}
+        .btn-mark.marked {background:#e8e8e8;color:#111;font-weight:bold;}
+        h1 {margin-top:0;font-size:22px;}
+        h3 {margin-top:4px;margin-bottom:8px;font-size:16px;text-align:center;}
+        .limit-item {padding:3px 0;border-bottom:1px solid #444;text-align:center;font-size:13px;}
     </style>
 </head>
 <body>
-    <h1>📊 板块资金占比监控（同花顺板块体系）</h1>
+    <h1>板块资金占比监控</h1>
     <div class="container">
         <div class="sidebar">
             <h3>设置面板</h3>
@@ -42,9 +45,9 @@
             <input type="range" id="th2" min="3" max="10" step="0.1" value="4.5">
             <label>板块最小成交额过滤(亿)</label>
             <input type="number" id="minAmt" value="20">
-            <button onclick="refreshData()">🔄 手动刷新</button>
+            <button onclick="refreshData()">手动刷新</button>
             <div style="margin-top:12px;font-size:13px;color:#ccc;">
-                💡 使用说明：点击每行【标记】按钮手动高亮板块
+                点击每行“标记”按钮手动高亮板块
             </div>
         </div>
         <div class="main-wrap">
@@ -70,14 +73,13 @@
                 </table>
             </div>
             <div class="limit-panel">
-                <h3>🔥 涨停个股列表</h3>
+                <h3>涨停个股列表</h3>
                 <div id="limitBody"></div>
             </div>
         </div>
     </div>
 
 <script>
-// DOM元素
 const predTotalInput = document.getElementById('predTotal');
 const th1Slider = document.getElementById('th1');
 const th2Slider = document.getElementById('th2');
@@ -91,51 +93,47 @@ const limitBody = document.getElementById('limitBody');
 const tabs = document.querySelectorAll('.tab');
 
 let currentType = "industry";
-// 保存被手动标记高亮的板块名称集合
 let markedSet = new Set();
 
 val1.textContent = th1Slider.value;
 val2.textContent = th2Slider.value;
-th1Slider.oninput = ()=>val1.textContent=th1Slider.value;
-th2Slider.oninput = ()=>val2.textContent=th2Slider.value;
+th1Slider.oninput = () => val1.textContent = th1Slider.value;
+th2Slider.oninput = () => val2.textContent = th2Slider.value;
 
-tabs.forEach(t=>{
-    t.onclick = ()=>{
-        tabs.forEach(x=>x.classList.remove('active'));
+tabs.forEach(t => {
+    t.onclick = () => {
+        tabs.forEach(x => x.classList.remove('active'));
         t.classList.add('active');
         currentType = t.dataset.type;
         refreshData();
-    }
-})
+    };
+});
 
-// 计算A股已交易分钟
 function getTradeMinutes(){
     const now = new Date();
     const h = now.getHours();
     const m = now.getMinutes();
-    if(h<9 || (h===9 && m<30)) return 0;
-    if(h >=11 && h<13) return 120;
-    if(h===11 && m<=30) return (h-9)*60 + m -30;
-    if(h>=13 && h<=15){
-        if(h===15) return 240;
-        return 120 + (h-13)*60 + m;
+    if(h < 9 || (h === 9 && m < 30)) return 0;
+    if(h >= 11 && h < 13) return 120;
+    if(h === 11 && m <= 30) return (h - 9) * 60 + m - 30;
+    if(h >= 13 && h <= 15){
+        if(h === 15) return 240;
+        return 120 + (h - 13) * 60 + m;
     }
     return 240;
 }
 
-// 模拟板块行情
 async function fetchSectorData(sectorType){
     const mock = [
         {"板块名称":"国产芯片","涨跌幅":3.2,"成交额":420},
         {"板块名称":"AI软件","涨跌幅":2.8,"成交额":380},
         {"板块名称":"出版","涨跌幅":1.5,"成交额":210},
         {"板块名称":"油运","涨跌幅":-0.6,"成交额":140},
-        {"板块名称":"光伏","涨跌幅":0.9,"成交额":260},
-    ]
+        {"板块名称":"光伏","涨跌幅":0.9,"成交额":260}
+    ];
     return mock;
 }
 
-// 模拟涨停股
 async function fetchLimitUpData(){
     const mockLimit = [
         "中芯国际",
@@ -143,7 +141,7 @@ async function fetchLimitUpData(){
         "中国科传",
         "金山软件",
         "中远海能"
-    ]
+    ];
     return mockLimit;
 }
 
@@ -161,30 +159,29 @@ async function refreshData(){
     const marketTotal = await fetchMarketTotal();
     const rawData = await fetchSectorData(currentType);
     const limitList = await fetchLimitUpData();
-    const filterData = rawData.filter(item=>item.成交额 >= minAmt);
+    const filterData = rawData.filter(item => item.成交额 >= minAmt);
 
-    // 计算指标
-    const list = filterData.map(item=>{
-        const pctNow = (item.成交额 / marketTotal *100).toFixed(2);
-        const pctPred = (item.成交额 / predTotal *100).toFixed(2);
+    const list = filterData.map(item => {
+        const pctNow = (item.成交额 / marketTotal * 100).toFixed(2);
+        const pctPred = (item.成交额 / predTotal * 100).toFixed(2);
         return {
-            name:item.板块名称,
-            change:item.涨跌幅,
-            amt:item.成交额,
+            name: item.板块名称,
+            change: item.涨跌幅,
+            amt: item.成交额,
             pctNow,
-            pctPred,
-        }
-    })
-    // 按【占当前大盘成交量%】降序
-    list.sort((a,b)=>Number(b.pctNow)-Number(a.pctNow));
+            pctPred
+        };
+    });
 
-    // 渲染板块表格
+    list.sort((a, b) => Number(b.pctNow) - Number(a.pctNow));
+
     marketInfo.innerHTML = `当前全市场总成交额：${marketTotal}亿｜已交易 ${tradeMin}/240 分钟`;
     tableBody.innerHTML = "";
     let highCount = 0;
-    list.forEach(row=>{
+
+    list.forEach(row => {
         const tr = document.createElement('tr');
-        // 如果这个板块被点击标记，则上色
+
         if(markedSet.has(row.name)){
             const v = Number(row.pctNow);
             if(v >= th2){
@@ -194,35 +191,36 @@ async function refreshData(){
             }
             highCount++;
         }
+
+        const btnClass = markedSet.has(row.name) ? "btn-mark marked" : "btn-mark";
+
         tr.innerHTML = `
-            <td><button class="btn-mark" onclick="toggleMark('${row.name}')">标记</button></td>
+            <td><button class="${btnClass}" onclick="toggleMark('${row.name}')">标记</button></td>
             <td>${row.name}</td>
             <td>${row.change}</td>
             <td>${row.pctNow}</td>
             <td>${row.amt}</td>
             <td>${row.pctPred}</td>
-        `
+        `;
         tableBody.appendChild(tr);
-    })
-    // 资金分流提示
-    if(highCount >=2){
-        warnBox.style.display="block";
-        warnBox.innerText = `⚠️ 存在${highCount}个手动标记板块，资金分流，主线持续性承压，留意止盈！`;
+    });
+
+    if(highCount >= 2){
+        warnBox.style.display = "block";
+        warnBox.innerText = `存在${highCount}个手动标记板块，资金分流，主线持续性承压，留意止盈。`;
     }else{
-        warnBox.style.display="none";
+        warnBox.style.display = "none";
     }
 
-    // 渲染右侧涨停列表
     limitBody.innerHTML = "";
-    limitList.forEach(name=>{
+    limitList.forEach(name => {
         const div = document.createElement('div');
-        div.style.padding="4px 0;border-bottom:1px solid #444";
+        div.className = "limit-item";
         div.innerText = name;
         limitBody.appendChild(div);
-    })
+    });
 }
 
-// 切换标记状态
 function toggleMark(name){
     if(markedSet.has(name)){
         markedSet.delete(name);
@@ -232,9 +230,8 @@ function toggleMark(name){
     refreshData();
 }
 
-// 自动刷新
 refreshData();
-setInterval(refreshData,30000);
+setInterval(refreshData, 30000);
 </script>
 </body>
 </html>
