@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>板块资金占比监控看板</title>
+    <style>
+        * {box-sizing: border-box;}
+        body {font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;margin:10px;background:#111;color:#eee;}
+        .container {display:flex;gap:10px;flex-wrap:wrap;}
+        .sidebar {width:280px;background:#222;padding:12px;border-radius:8px;flex-shrink:0;}
+        .main {flex:1;min-width:600px;}
+        .tab-bar {display:flex;gap:8px;margin-bottom:10px;}
+        .tab {padding:8px 16px;background:#333;border-radius:6px;cursor:pointer;}
+        .tab.active {background:#2563eb;}
+        table {width:100%;border-collapse:collapse;font-size:14px;}
+        th,td {padding:8px 6px;text-align:center;border-bottom:1px solid #333;}
+        th {background:#222;}
+        .row-orange {background:#5c4b22;}
+        .row-red {background:#6b2828;}
+        .info {padding:10px;background:#1e3a5f;border-radius:6px;margin-bottom:10px;}
+        .warn {padding:10px;background:#713123;border-radius:6px;margin-bottom:10px;}
+        input,button {width:100%;padding:6px;margin:4px 0;border:none;border-radius:4px;}
+        button {background:#2563eb;color:#fff;padding:8px;cursor:pointer;}
+    </style>
+</head>
+<body>
+    <h1>📊 板块资金占比监控（同花顺板块体系）</h1>
+    <div class="container">
+        <div class="sidebar">
+            <h3>设置面板</h3>
+            <label>预测今日大盘全天成交额(亿)</label>
+            <input type="number" id="predTotal" value="10000">
+
+            <label><input type="checkbox" id="highlightSwitch" checked> 开启重点板块高亮</label>
+            <label>橙色阈值(占当前大盘%)：<span id="val1">2.5</span></label>
+            <input type="range" id="th1" min="1" max="8" step="0.1" value="2.5">
+            <label>红色阈值(占当前大盘%)：<span id="val2">4.5</span></label>
+            <input type="range" id="th2" min="3" max="10" step="0.1" value="4.5">
+            <label>板块最小成交额过滤(亿)</label>
+            <input type="number" id="minAmt" value="20">
+            <button onclick="refreshData()">🔄 手动刷新</button>
+        </div>
+        <div class="main">
+            <div class="tab-bar">
+                <div class="tab active" data-type="industry">行业板块</div>
+                <div class="tab" data-type="concept">概念板块</div>
+            </div>
+            <div class="info" id="marketInfo">加载大盘数据...</div>
+            <div class="warn" id="warnBox" style="display:none;"></div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>板块名称</th>
+                        <th>占当前大盘成交(%)</th>
+                        <th>占预测全天大盘(%)</th>
+                        <th>板块成交额(亿)</th>
+                        <th>涨跌幅(%)</th>
+                        <th>维持上涨还需成交(亿)</th>
+                    </tr>
+                </thead>
+                <tbody id="tableBody"></tbody>
+            </table>
+        </div>
+    </div>
+
+<script>
+// DOM元素
+const predTotalInput = document.getElementById('predTotal');
+const highlightSwitch = document.getElementById('highlightSwitch');
+const th1Slider = document.getElementById('th1');
+const th2Slider = document.getElementById('th2');
+const val1 = document.getElementById('val1');
+const val2 = document.getElementById('val2');
+const minAmtInput = document.getElementById('minAmt');
+const marketInfo = document.getElementById('marketInfo');
+const warnBox = document.getElementById('warnBox');
+const tableBody = document.getElementById('tableBody');
+const tabs = document.querySelectorAll('.tab');
+
+let currentType = "industry";
+val1.textContent = th1Slider.value;
+val2.textContent = th2Slider.value;
+th1Slider.oninput = ()=>val1.textContent=th1Slider.value;
+th2Slider.oninput = ()=>val2.textContent=th2Slider.value;
+
+tabs.forEach(t=>{
+    t.onclick = ()=>{
+        tabs.forEach(x=>x.classList.remove('active'));
+        t.classList.add('active');
+        currentType = t.dataset.type;
+        refreshData();
+    }
+})
+
+// 计算A股已交易分钟
+function getTradeMinutes(){
+    const now = new Date();
+    const h = now.getHours();
+    const m = now.getMinutes();
+    if(h<9 || (h===9 && m<30)) return 0;
+    if(h >=11 && h<13) return 120;
+    if(h===11 && m<=30) return (h-9)*60 + m -30;
+    if(h>=13 && h<=15){
+        if(h===15) return 240;
+        return 120 + (h-13)*60 + m;
+    }
+    return 240;
+}
+
+// 模拟行情函数（这里是演示。真实场景需要JS行情接口，下面说明）
+async function fetchSectorData(sectorType){
+    // 【重要】这里是演示占位
+    // 真实JS行情接口需要跨域代理。纯前端浏览器直接抓取同花顺板块接口存在跨域限制
+    // 下面是模拟数据，用来预览界面效果
+    const mock = [
+        {"板块名称":"国产芯片","涨跌幅":3.2,"成交额":420},
+        {"板块名称":"AI软件","涨跌幅":2.8,"成交额":380},
+        {"板块名称":"出版","涨跌幅":1.5,"成交额":210},
+        {"板块名称":"油运","涨跌幅":-0.6,"成交额":140},
+        {"板块名称":"光伏","涨跌幅":0.9,"成交额":260},
+    ]
+    return mock;
+}
+
+async function fetchMarketTotal(){
+    // 模拟大盘总成交额
+    return 5800;
+}
+
+async function refreshData(){
+    const tradeMin = getTradeMinutes();
+    const timeRatio = tradeMin / 240 || 1;
+    const predTotal = Number(predTotalInput.value);
+    const th1 = Number(th1Slider.value);
+    const th2 = Number(th2Slider.value);
+    const minAmt = Number(minAmtInput.value);
+
+    const marketTotal = await fetchMarketTotal();
+    const rawData = await fetchSectorData(currentType);
+    const filterData = rawData.filter(item=>item.成交额 >= minAmt);
+
+    // 计算指标
+    const list = filterData.map(item=>{
+        const pctNow = (item.成交额 / marketTotal *100).toFixed(2);
+        const pctPred = (item.成交额 / predTotal *100).toFixed(2);
+        const estEndAmt = item.成交额 / timeRatio;
+        const needAmt = (estEndAmt - item.成交额).toFixed(2);
+        return {
+            name:item.板块名称,
+            change:item.涨跌幅,
+            amt:item.成交额,
+            pctNow,
+            pctPred,
+            needAmt,
+        }
+    })
+    // 按【占当前大盘成交%】降序
+    list.sort((a,b)=>Number(b.pctNow)-Number(a.pctNow));
+
+    // 渲染
+    marketInfo.innerHTML = `当前全市场总成交额：${marketTotal}亿｜已交易 ${tradeMin}/240 分钟`;
+    tableBody.innerHTML = "";
+    let highCount = 0;
+    list.forEach(row=>{
+        const tr = document.createElement('tr');
+        if(highlightSwitch.checked){
+            const v = Number(row.pctNow);
+            if(v >= th2){
+                tr.className = "row-red";
+                highCount++;
+            }else if(v >= th1){
+                tr.className = "row-orange";
+            }
+        }
+        tr.innerHTML = `
+            <td>${row.name}</td>
+            <td>${row.pctNow}</td>
+            <td>${row.pctPred}</td>
+            <td>${row.amt}</td>
+            <td>${row.change}</td>
+            <td>${row.needAmt}</td>
+        `
+        tableBody.appendChild(tr);
+    })
+    // 资金分流提示
+    if(highCount >=2){
+        warnBox.style.display="block";
+        warnBox.innerText = `⚠️ 存在${highCount}个板块处于高资金占用，资金分流，主线持续性承压，留意止盈！`;
+    }else{
+        warnBox.style.display="none";
+    }
+}
+
+// 自动刷新
+refreshData();
+setInterval(refreshData,30000);
+</script>
+</body>
+</html>
