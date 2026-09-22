@@ -18,8 +18,7 @@
         table {width:100%;border-collapse:collapse;font-size:14px;}
         th,td {padding:8px 6px;text-align:center;border-bottom:1px solid #444;}
         th {background:#3c3c3c;}
-        .row-orange {background:#5c4b22 !important;}
-        .row-red {background:#6b2828 !important;}
+        .row-highlight-silver {background:#d8d8d8 !important;color:#111 !important;}
         .info {padding:10px;background:#34495e;border-radius:6px;margin-bottom:10px;}
         .warn {padding:10px;background:#713123;border-radius:6px;margin-bottom:10px;}
         input,button {width:100%;padding:6px;margin:4px 0;border:none;border-radius:4px;}
@@ -183,12 +182,7 @@ async function refreshData(){
         const tr = document.createElement('tr');
 
         if(markedSet.has(row.name)){
-            const v = Number(row.pctNow);
-            if(v >= th2){
-                tr.className = "row-red";
-            }else if(v >= th1){
-                tr.className = "row-orange";
-            }
+            tr.className = "row-highlight-silver";
             highCount++;
         }
 
